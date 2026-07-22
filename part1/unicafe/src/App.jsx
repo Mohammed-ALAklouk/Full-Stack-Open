@@ -5,6 +5,7 @@ function App() {
   const [neutralCount, setNeutralCount] = useState(0)
   const [badCount, setBadCount] = useState(0)
   
+  
   return (
     <div>
       <h1>Give feedback</h1>
@@ -19,6 +20,12 @@ function App() {
         <span>neutral {neutralCount}</span>
         <br></br>
         <span>bad {badCount}</span>
+        <br></br>
+        <span>all {goodCount + neutralCount + badCount}</span>
+        <br></br>
+        <span>average {(goodCount - badCount) / (goodCount + neutralCount + badCount)}</span>
+        <br></br>
+        <span>positive {goodCount / (goodCount + neutralCount + badCount) * 100} %</span>
       </p>
     </div>
   )
