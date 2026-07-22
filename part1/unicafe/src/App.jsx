@@ -1,6 +1,30 @@
 import { useState } from 'react'
 
-function App() {
+const Statistics = (props) => {
+  let good = props.good
+  let neutral = props.neutral
+  let bad = props.bad
+  return (
+    <>
+      <h1>Statistics</h1>
+      <p>
+        <span>good {good}</span>
+        <br></br>
+        <span>neutral {neutral}</span>
+        <br></br>
+        <span>bad {bad}</span>
+        <br></br>
+        <span>all {good + neutral + bad}</span>
+        <br></br>
+        <span>average {(good - bad) / (good + neutral + bad)}</span>
+        <br></br>
+        <span>positive {good / (good + neutral + bad) * 100} %</span>
+      </p>
+    </>
+  )
+}
+
+const App = () => {
   const [goodCount, setGoodCount] = useState(0)
   const [neutralCount, setNeutralCount] = useState(0)
   const [badCount, setBadCount] = useState(0)
@@ -13,20 +37,8 @@ function App() {
       <button onClick={() => setNeutralCount(neutralCount + 1)}>neutral</button>
       <button onClick={() => setBadCount(badCount + 1)}>bad</button>
 
-      <h1>Statistics</h1>
-      <p>
-        <span>good {goodCount}</span>
-        <br></br>
-        <span>neutral {neutralCount}</span>
-        <br></br>
-        <span>bad {badCount}</span>
-        <br></br>
-        <span>all {goodCount + neutralCount + badCount}</span>
-        <br></br>
-        <span>average {(goodCount - badCount) / (goodCount + neutralCount + badCount)}</span>
-        <br></br>
-        <span>positive {goodCount / (goodCount + neutralCount + badCount) * 100} %</span>
-      </p>
+      <Statistics good={goodCount} neutral={neutralCount} bad={badCount} />
+      
     </div>
   )
 }
