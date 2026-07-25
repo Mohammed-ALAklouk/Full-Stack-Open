@@ -1,5 +1,19 @@
 import { useState, useEffect } from 'react'
 import personService from './services/persons'
+import './App.css'
+
+const Notification = ({ message }) => {
+  if (message === null) {
+    return null
+  }
+
+
+  return (
+    <div className={"notification"}>
+      {message}
+    </div>
+  )
+}
 
 const Filter = ({ filter, handleFilterChange }) => {
   return (
@@ -55,6 +69,17 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
+  const [notification, setNotification] = useState(null)
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null)
+      }, 5000)
+
+      return () => clearTimeout(timer)
+    }
+  }, [notification])
 
   const addPerson = (event) => {
     event.preventDefault()
@@ -68,7 +93,7 @@ const App = () => {
       if (window.confirm(`${newNumber} is already added to phonebook, replace the old number with a new one?`)) {
         personService.update(persons.find(person => person.name === newName).id, personObject).then(data => {
           setPersons(persons.map(person => person.name === newName ? data : person))
-          
+          setNotification(`Updated ${personObject.name}`)
           setNewName('')
           setNewNumber('')
         })
@@ -81,6 +106,7 @@ const App = () => {
       setPersons(persons.concat(data))
       setNewName('')
       setNewNumber('')
+      setNotification(`Added ${personObject.name}`)
     })
   }
 
@@ -89,6 +115,7 @@ const App = () => {
     if (window.confirm(`Delete ${person.name}?`)) {
       personService.deletePerson(id).then(() => {
         setPersons(persons.filter(p => p.id !== id))
+        setNotification(`Deleted ${person.name}`)
       })
     }
   }
@@ -101,8 +128,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Notification message={notification} />
       <Filter filter={filter} handleFilterChange={(event) => setFilter(event.target.value)} />
-      
       <h3>Add a new</h3>
       <PersonForm 
         addPerson={addPerson}
