@@ -10,36 +10,57 @@ const searchCountry = (countries, search) => {
   )
 }
 
-const Countrylist = ({ countries }) => {
-  if (countries.length >= 10) {
-    return <p>Too many matches, specify another filter</p>
-  }
+const Country = ({ country }) => {
+  return (
+    <div>
+      <h2>{country.name.common}</h2>
+      {/* We display 'N/A' if the capital is not available and join the array to accommodate countries with multiple capitals */}
+      <p>Capital: {country.capital ? country.capital.join(", ") : 'N/A'}</p>
+      <p>Area: {country.area}</p>
 
+      {/* Display languages if available */}
+      {
+        country.languages ? (
+          <>
+            <h3>Languages:</h3>
+            <ul>
+            {
+              Object.values(country.languages).map(language => (
+                <li key={language}>{language}</li>
+              ))
+            }
+            </ul>
+          </>
+        ) 
+        : <p>No languages available</p>
+      }
+      
+      <img src={country.flags.png} alt={`Flag of ${country.name.common}`} />
+    </div>
+  )
+}
+
+const CountryRow = ({ country, onCountryClick }) => {
+  return (
+    <div>
+      <span>{country.name.common}</span>
+      <button onClick={() => onCountryClick(country)}>Show</button>
+    </div>
+  )
+}
+
+const CountryList = ({ countries, onCountryClick }) => {
   if (countries.length === 1) {
-    return (
-      <div>
-        <h2>{countries[0].name.common}</h2>
-        <p>Capital: {countries[0].capital}</p>
-        <p>Area: {countries[0].area}</p>
-        <h3>Languages:</h3>
-        <ul>
-          {Object.values(countries[0].languages).map(language => (
-            <li key={language}>{language}</li>
-          ))}
-        </ul>
-        <img src={countries[0].flags.png} alt={`Flag of ${countries[0].name.common}`} />
-      </div>
-    )
-
+    return <Country country={countries[0]} />
+  }
+  
+  if (countries.length > 10) {
+    return <p>Too many matches, specify another filter</p>
   }
 
   return (
     <>
-      {countries.map(country => (
-        <div key={country.name.common}>
-          <span>{country.name.common}</span>
-        </div>
-      ))}
+      {countries.map(country => (<CountryRow key={country.name.common} country={country} onCountryClick={onCountryClick} />))}
     </>
   )
 }
@@ -47,7 +68,7 @@ const Countrylist = ({ countries }) => {
 const App = () => {
   const [countries, setCountries] = useState([])
   const [search, setSearch] = useState('')
-  const [selectedCountries, setSelectedCountries] = useState([])
+  const [selectedCountry, setSelectedCountry] = useState(null)
 
   useEffect(() => {
     axios
@@ -57,10 +78,13 @@ const App = () => {
       })
   }, [])
 
-  useEffect(() => {
-    const filteredCountries = searchCountry(countries, search)
-    setSelectedCountries(filteredCountries)
-  }, [search])
+
+  const handleInputChange = (event) => {
+    setSearch(event.target.value)
+    setSelectedCountry(null) // Reset selected country when search changes
+  }
+
+  const handleCountryClick = (country) => setSelectedCountry(country)
 
   return (
     <>
@@ -68,11 +92,18 @@ const App = () => {
       <input
         type="text"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={handleInputChange}
         placeholder="Search for a country"
         />
 
-      <Countrylist countries={selectedCountries} />
+
+      {
+        selectedCountry ? (
+          <Country country={selectedCountry} />
+        ) : (
+          <CountryList countries={searchCountry(countries, search)} onCountryClick={handleCountryClick} />
+        )
+      }
     </>
   )
 }
