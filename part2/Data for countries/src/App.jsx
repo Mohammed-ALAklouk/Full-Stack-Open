@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
+const apikey = import.meta.env.VITE_OPENWEATHER_API_KEY
+const weatherApiUrl = 'https://api.openweathermap.org/data/2.5/weather'
+
 const searchCountry = (countries, search) => {
   if (!search) {
     return []
@@ -10,7 +13,37 @@ const searchCountry = (countries, search) => {
   )
 }
 
-const Country = ({ country }) => {
+const getWeather = async (country) => {
+  if (!country || !country.capital) {
+    return null
+  }
+  const capital = country.capital[0]
+  try {
+    const response = await axios.get(`${weatherApiUrl}?q=${capital}&appid=${apikey}&units=metric`)
+    return response.data
+  } catch (error) {
+    console.error('Error fetching weather data:', error)
+    return null
+  }
+}
+
+
+const Weather = ({ weather }) => {
+  if (!weather) {
+    return <p>Loading weather data...</p>
+  }
+
+  return (
+    <div>
+      <h3>Weather in {weather.name}</h3>
+      <p>Temperature {weather.main.temp}°C</p>
+      <img src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}.png`} alt="Weather icon" />
+      <p>Wind {weather.wind.speed} m/s</p>
+    </div>
+  )
+}
+
+const Country = ({ country, weather }) => {
   return (
     <div>
       <h2>{country.name.common}</h2>
@@ -31,11 +64,12 @@ const Country = ({ country }) => {
             }
             </ul>
           </>
-        ) 
+        )
         : <p>No languages available</p>
       }
-      
+
       <img src={country.flags.png} alt={`Flag of ${country.name.common}`} />
+      <Weather weather={weather} />
     </div>
   )
 }
@@ -50,10 +84,6 @@ const CountryRow = ({ country, onCountryClick }) => {
 }
 
 const CountryList = ({ countries, onCountryClick }) => {
-  if (countries.length === 1) {
-    return <Country country={countries[0]} />
-  }
-  
   if (countries.length > 10) {
     return <p>Too many matches, specify another filter</p>
   }
@@ -69,6 +99,10 @@ const App = () => {
   const [countries, setCountries] = useState([])
   const [search, setSearch] = useState('')
   const [selectedCountry, setSelectedCountry] = useState(null)
+  const [weather, setWeather] = useState(null)
+
+  const matchingCountries = searchCountry(countries, search)
+  const shownCountry = selectedCountry ? selectedCountry : (matchingCountries.length === 1 ? matchingCountries[0] : null)
 
   useEffect(() => {
     axios
@@ -78,6 +112,14 @@ const App = () => {
       })
   }, [])
 
+  useEffect(() => {
+    if (!shownCountry) {
+      setWeather(null)
+      return
+    } 
+    
+    getWeather(shownCountry).then(data => setWeather(data))
+  }, [shownCountry])
 
   const handleInputChange = (event) => {
     setSearch(event.target.value)
@@ -96,12 +138,11 @@ const App = () => {
         placeholder="Search for a country"
         />
 
-
       {
-        selectedCountry ? (
-          <Country country={selectedCountry} />
+        shownCountry ? (
+          <Country country={shownCountry} weather={weather} />
         ) : (
-          <CountryList countries={searchCountry(countries, search)} onCountryClick={handleCountryClick} />
+          <CountryList countries={matchingCountries} onCountryClick={handleCountryClick} />
         )
       }
     </>
