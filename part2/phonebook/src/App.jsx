@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react'
 import personService from './services/persons'
 import './App.css'
 
-const Notification = ({ message }) => {
-  if (message === null) {
+const Notification = ({ notification }) => {
+  if (notification === null) {
     return null
   }
 
+  const notificationClass = notification.type === 'error'
+    ? 'notification error'
+    : 'notification'
 
   return (
-    <div className={"notification"}>
-      {message}
+    <div className={notificationClass}>
+      {notification.message}
     </div>
   )
 }
@@ -58,18 +61,26 @@ const Numbers = ({ personsToShow, deletePerson }) => {
 const App = () => {
   const [persons, setPersons] = useState([])
 
-  const hook = () => {
-    personService.getAll().then(data => {
-      setPersons(data)
-    })
-  }
-
-  useEffect(hook, [])
-
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [filter, setFilter] = useState('')
   const [notification, setNotification] = useState(null)
+
+  const notify = (message, type = 'success') => {
+    setNotification({ message, type, id: Date.now() })
+  }
+
+  const hook = () => {
+    personService.getAll()
+      .then(data => {
+        setPersons(data)
+      })
+      .catch(() => {
+        notify('Could not load the phonebook from the server', 'error')
+      })
+  }
+
+  useEffect(hook, [])
 
   useEffect(() => {
     if (notification) {
@@ -89,34 +100,50 @@ const App = () => {
       number: newNumber
     }
 
-    if (persons.some(person => person.name.toLowerCase() === newName.toLowerCase())) {
-      if (window.confirm(`${newNumber} is already added to phonebook, replace the old number with a new one?`)) {
-        personService.update(persons.find(person => person.name === newName).id, personObject).then(data => {
-          setPersons(persons.map(person => person.name === newName ? data : person))
-          setNotification(`Updated ${personObject.name}`)
-          setNewName('')
-          setNewNumber('')
-        })
+    const existing = persons.find(person => person.name.toLowerCase() === newName.toLowerCase())
+
+    if (existing) {
+      if (window.confirm(`${newName} is already added to phonebook, replace the old number with a new one?`)) {
+        personService.update(existing.id, personObject)
+          .then(data => {
+            setPersons(persons.map(person => person.id === existing.id ? data : person))
+            notify(`Updated ${personObject.name}`)
+            setNewName('')
+            setNewNumber('')
+          })
+          .catch(() => {
+            notify(`Information of ${personObject.name} has already been removed from server`, 'error')
+            setPersons(persons.filter(person => person.id !== existing.id))
+          })
       }
 
       return
     }
 
-    personService.create(personObject).then(data => {
-      setPersons(persons.concat(data))
-      setNewName('')
-      setNewNumber('')
-      setNotification(`Added ${personObject.name}`)
-    })
+    personService.create(personObject)
+      .then(data => {
+        setPersons(persons.concat(data))
+        setNewName('')
+        setNewNumber('')
+        notify(`Added ${personObject.name}`)
+      })
+      .catch(() => {
+        notify(`Could not add ${personObject.name}`, 'error')
+      })
   }
 
   const deletePerson = (id) => {
     const person = persons.find(p => p.id === id)
     if (window.confirm(`Delete ${person.name}?`)) {
-      personService.deletePerson(id).then(() => {
-        setPersons(persons.filter(p => p.id !== id))
-        setNotification(`Deleted ${person.name}`)
-      })
+      personService.deletePerson(id)
+        .then(() => {
+          setPersons(persons.filter(p => p.id !== id))
+          notify(`Deleted ${person.name}`)
+        })
+        .catch(() => {
+          notify(`Information of ${person.name} has already been removed from server`, 'error')
+          setPersons(persons.filter(p => p.id !== id))
+        })
     }
   }
 
@@ -128,7 +155,7 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
-      <Notification message={notification} />
+      <Notification notification={notification} />
       <Filter filter={filter} handleFilterChange={(event) => setFilter(event.target.value)} />
       <h3>Add a new</h3>
       <PersonForm 
