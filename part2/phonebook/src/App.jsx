@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import axios from 'axios'
+import personService from './services/persons'
 
 const Filter = ({ filter, handleFilterChange }) => {
   return (
@@ -45,10 +45,9 @@ const App = () => {
   const [persons, setPersons] = useState([])
 
   const hook = () => {
-    axios.get('http://localhost:3001/persons')
-      .then(response => {
-        setPersons(response.data)
-      })
+    personService.getAll().then(data => {
+      setPersons(data)
+    })
   }
 
   useEffect(hook, [])
@@ -71,8 +70,8 @@ const App = () => {
       id: persons.length + 1
     }
 
-    axios.post('http://localhost:3001/persons', personObject).then(response => {
-      setPersons(persons.concat(response.data))
+    personService.create(personObject).then(data => {
+      setPersons(persons.concat(data))
       setNewName('')
       setNewNumber('')
     })
